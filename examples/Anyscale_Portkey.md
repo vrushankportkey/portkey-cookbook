@@ -1,16 +1,31 @@
 # Portkey + Anyscale
-Portkey helps bring Anyscale APIs to production with its abstractions for observability, fallbacks, caching, and more. Use the Anyscale API **through** Portkey for:
+
+[Portkey](https://docs.portkey.ai/) acts as an AI Gateway to Anyscale to ensure the reliability you want to provide for your users. 
+
+Use the Anyscale API **through** Portkey for:
 
 1. **Enhanced Logging**: Track API use with detailed insights.
 2. **Production Reliability**: Automated fallbacks, load balancing, and caching.
 3. **Continuous Improvement**: Collect and apply user feedback.
 4. **Enhanced Fine-Tuning**: Combine logs & user feedback for targetted fine-tuning.
 
-### 1.1 Setup & Logging
-1. Obtain your [**Portkey API Key**](https://app.portkey.ai/).
-2. Switch to **Portkey Gateway URL:** `https://api.portkey.ai/v1/chat/completions`
+## Setup 
 
-See full logs of requests (latency, cost, tokens)—and dig deeper into the data with their analytics suite.
+To provide you with those features, the requests will be securely proxied through your Portkey account.
+
+To set one up:
+
+1. [Sign up](https://portkey.ai/signup)
+2. Grab the [API Key](https://docs.portkey.ai/portkey-docs/introduction/getting-started#first-obtain-your-portkey-api-key)
+
+You are now ready to fully manage LLM Operations for your apps!
+
+## Logs
+
+To enable logs for your application, you simply will make call to Anyscale, just via Portkey.
+
+Portkey Gateway URL: `https://api.portkey.ai/v1/chat/completions`
+
 ```py
 import openai
 
@@ -19,10 +34,8 @@ PORTKEY_GATEWAY_URL = "https://api.portkey.ai/v1/chat/completions"
 PORTKEY_HEADERS = {
 	'Authorization': Bearer ANYSCALE_KEY',
 	'Content-Type': 'application/json',
-	# **************************************
-	'x-portkey-api-key': 'PORTKEY_API_KEY', 	# Get from https://app.portkey.ai/,
-	'x-portkey-mode': 'proxy anyscale' 		# Tell Portkey that the request is for Anyscale
-	# **************************************
+	'x-portkey-api-key': '<PORTKEY_API_KEY>', # Substitue Portkey API Key
+	'x-portkey-mode': 'proxy anyscale' 		# Enable proxying to Anyscale 
 }
 
 client = openai.OpenAI(base_url=PORTKEY_GATEWAY_URL, default_headers=PORTKEY_HEADERS)
@@ -33,17 +46,23 @@ response = client.chat.completions.create(
 )
 
 print(chat_complete.choices[0].message.content)
-```
-### 1.2. Enhanced Observability
-* **Trace** requests with single id.
-* **Append custom tags** for request segmenting & in-depth analysis.
 
-Just add their relevant headers to your reuqest:
+```
+
+Try it out!
+
+You will see all the logs from your Portkey dashboard in dimensions such as latency, cost, tokens and even dive deep into analytics.
+
+## Observability
+Let's enable following for our app:
+
+* **Trace** requests with single id.
+* Pass **Metadata** to filter requests. 
 
 ```py
 import json
 
-TRACE_ID = 'anyscale_portkey_test'
+TRACE_ID = 'my_first_trace' # Any Searchable Label 
 
 METADATA = {
     "_environment": "production",
@@ -55,12 +74,10 @@ METADATA = {
 PORTKEY_HEADERS = {
 	'Authorization': Bearer ANYSCALE_KEY',
 	'Content-Type': 'application/json',
-	'x-portkey-api-key': 'PORTKEY_API_KEY',
+	'x-portkey-api-key': '<PORTKEY_API_KEY>',
 	'x-portkey-mode': 'proxy anyscale',
-	# **************************************
 	'x-portkey-trace-id': TRACE_ID, 		# Send the trace id
 	'x-portkey-metadata': json.dumps(METADATA) 	# Send the metadata
-	# **************************************
 }
 
 client = openai.OpenAI(base_url=PORTKEY_GATEWAY_URL, default_headers=PORTKEY_HEADERS)
@@ -73,12 +90,11 @@ response = client.chat.completions.create(
 print(chat_complete.choices[0].message.content)
 ```
 
-### 2. Caching, Fallbacks, Load Balancing
-* **Fallbacks**: Ensure your application remains functional even if a primary service fails.
-* **Load Balancing**: Efficiently distribute incoming requests among multiple models.
-* **Semantic Caching**: Reduce costs and latency by intelligently caching results.
+## Caching, Fallbacks, Load Balancing
 
-Toggle these features through Portkey's Config builder. Head to the **[Configs tab](https://app.portkey.ai)**—if we want to enable semantic caching + fallback from Llama2 to Mistral, your Portkey config would look like this:
+Portkey's AI Gateway can apply features like fallbacks or caching at each request level. You can do that by saving _configs_ (from the portkey dashboard > configs tab) to get config identifier. This identifier can be passed to `x-portkey-config` header as a `string`. 
+
+If we want to enable semantic caching + fallback from Llama2 to Mistral, your Portkey config would look like this:
 
 ```json
 {
@@ -97,6 +113,7 @@ Toggle these features through Portkey's Config builder. Head to the **[Configs t
 }
 ```
 
+
 Now, just send the Config key with `x-portkey-config` header:
 
 ```py
@@ -104,9 +121,7 @@ Now, just send the Config key with `x-portkey-config` header:
 PORTKEY_HEADERS = {
 	'x-portkey-api-key': 'PORTKEY_API_KEY',
 	'Content-Type': 'application/json'
-	# **************************************
-	'x-portkey-config': 'CONFIG_KEY'
-	# **************************************
+	'x-portkey-config': '<CONFIG_KEY>' # Identifier upon saving the configs
 }
 
 client = openai.OpenAI(base_url=PORTKEY_GATEWAY_URL, default_headers=PORTKEY_HEADERS)
@@ -120,8 +135,10 @@ print(chat_complete.choices[0].message.content)
 
 For more on Configs and other gateway feature like Load Balancing, [check out the docs.](https://docs.portkey.ai/portkey-docs/portkey-features/ai-gateway)
 
-### 3. Collect Feedback
+## Collect Feedback
+
 Gather weighted feedback from users and improve your app:
+
 ```py
 import requests
 import json
@@ -134,7 +151,7 @@ PORTKEY_HEADERS = {
 }
 
 DATA = {
-	"trace_id": "anyscale_portkey_test", # On Portkey, you can append feedback to a particular Trace ID
+	"trace_id": "my_second_trace_feedback", # Append feedback to Trace ID
 	"value": 1,
 	"weight": 0.5
 }
@@ -144,15 +161,19 @@ response = requests.post(PORTKEY_FEEDBACK_URL, headers=PORTKEY_HEADERS, data=jso
 print(response.text)
 ```
 
-### 4. Continuous Fine-Tuning
+## Continuous Fine-Tuning
 
-Once you start logging your requests and their feedback with Portkey, it becomes very easy to 1️) Curate & create data for fine-tuning, 2) Schedule fine-tuning jobs, and 3) Use the fine-tuned models!
+Once you start logging your requests and their feedback with Portkey, it becomes very easy to:
+
+1. Curate & create data for fine-tuning, 
+2. Schedule fine-tuning jobs, and 
+3. Use the fine-tuned models!
 
 Fine-tuning is currently enabled for select orgs - please request access on [Portkey Discord](https://discord.gg/sDk9JaNfK8) and we'll get back to you ASAP.
 
 <img src="https://portkey.ai/blog/content/images/2023/11/fine-tune.gif" alt="header" width=600 />
 
-#### Conclusion
+### Wrap Up
 
 Integrating Portkey with Anyscale helps you build resilient LLM apps from the get-go. With features like semantic caching, observability, load balancing, feedback, and fallbacks, you can ensure optimal performance and continuous improvement.
 
